@@ -1,0 +1,11 @@
+{
+  "type":"module",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.19.2",
+    "fix-esm": "^1.0.1",
+    "got": "^14.2.1",
+    "node": "^10.15.0",
+    "web3": "^4.7.0"
+  }
+}
