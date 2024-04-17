@@ -1,16 +1,19 @@
-// web3 API -> Interfacing with Rinkeby Test Chain.
+// web3 API -> Interfacing with Ganache Test Chain.
 web3 = new Web3(window.ethereum)
 window.ethereum.enable().catch(error => {
     // User denied account access
     console.log(error)
 })
 var account;
-web3.eth.getAccounts((err, res) => {                   
-  account = res[0];
+web3.eth.getAccounts((err, res) => {
+    console.log("result is");
+    console.log(res);
+    account = res[1];
+    console.log(".....");
 });
-
+//const ec = new elliptic.ec('secp256k1');
 // Contract address and ABI
-var address = '0xb7eeEDe8968646A791198fb7169Ef9a9964721B3';
+var address = '0x7c6f179657236b33e272c0524a8b5625b2171083';
 var abi = [{"constant":true,"inputs":[{"internalType":"bytes32[]","name":"exchangedIDs","type":"bytes32[]"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"checkIDs","outputs":[{"internalType":"bool","name":"","type":"bool"},{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32[]","name":"infectedID","type":"bytes32[]"}],"name":"insertToBlockchain","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listofIDs","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"readFromBlockchain","outputs":[{"internalType":"bytes32[]","name":"","type":"bytes32[]"}],"payable":false,"stateMutability":"view","type":"function"}];
 
 // contract object 
@@ -51,7 +54,41 @@ function ascii_to_hexa(str)
     }
     return arr1.join('');
 }
+// Function to generate ECC key pair
+function generateKeyPair() {
+    return ec.genKeyPair();
+}
+        // Convert ECC key to Uint8Array
+        function keyToUint8Array(key) {
+            return Uint8Array.from(Buffer.from(key.getPublic(true, 'hex'), 'hex'));
+        }
 
+        // Encrypt data using ECIES
+        async function encryptID(data, publicKey) {
+            const encrypted = await eccrypto.encrypt(publicKey, Buffer.from(data));
+            return encrypted.toString('hex');
+        }
+
+        // Decrypt data using ECIES
+        async function decryptData(encrypted, privateKey) {
+            const decrypted = await eccrypto.decrypt(Buffer.from(privateKey, 'hex'), encrypted);
+            return decrypted.toString();
+        }
+// Function to generate a zero-knowledge proof
+function generateZKP(encryptedID, privateKey) {
+    const hash = sha256(encryptedID); // Hash the encrypted ID
+    const signature = sign(hash, privateKey); // Sign the hash with the private key
+    return signature;
+}
+// Function to verify the zero-knowledge proof
+function verifyZKP(encryptedID, publicKey, zkp) {
+    const hash = sha256(encryptedID); // Hash the encrypted ID
+    return verify(hash, publicKey, zkp); // Verify the signature using the public key
+}
+// Function to convert byte array to hexadecimal string
+function bytesToHex(bytes) {
+    return '0x' + Buffer.from(bytes).toString('hex');
+}
 // Makes a random ID of given length. 
 function makeid(length) {
     var result           = '';
@@ -74,6 +111,21 @@ function IDgenerator(){
     result2 = makeid(5); // self IDs
     exchangedIDs.push(result1);
     selfIDs.push(result2);
+    //const keyPair = generateKeyPair();
+
+    // Encrypt IDs and generate ZKPs
+    /*const encryptedData = selfIDs.map(id => {
+        const encryptedID = encryptID(id, keyPair.getPublic().encode('hex'));
+        const zkp = generateZKP(encryptedID, keyPair.getPrivate().toString(16));
+        return { encryptedID, zkp };
+    });
+
+    // Convert encrypted IDs and ZKPs to hexadecimal format
+    const hexEncryptedData = encryptedData.map(data => ({
+        encryptedID: bytesToHex(data.encryptedID),
+        zkp: bytesToHex(data.zkp),
+    }));
+    console.log(hexEncryptedData);*/
 }
 setInterval(IDgenerator, idGenerationInterval * 1000);
 
@@ -108,15 +160,51 @@ function authenticate(){
 // Uploads the data after successful authentication. Disables the button after 1 upload. 
 var converted = 0;
 function upload(){
+    console.log("uploading");
     for(i = converted; i < selfIDs.length; ++i){
       selfIDs[i] = web3.utils.asciiToHex(selfIDs[i]);
       ++converted;
     }
+    console.log("Inserting to blockchain");
     contract.methods.insertToBlockchain(selfIDs).send({from:account});
+    console.log("Succesfully inserted to blockchain");
     $("#auth").html("Authenticate")
     $("#auth").css({"background-color":"blue"});
     button.disabled = true;
 }
+// Uploads the data after successful authentication. Disables the button after 1 upload. 
+//var converted = 0;
+/*function upload(){
+    console.log("uploading");
+    // Convert ASCII to hex for each ID asynchronously
+    const promises = selfIDs.slice(converted).map(id => {
+        return web3.utils.asciiToHex(id);
+    });
+
+    Promise.all(promises)
+    .then(hexIDs => {
+        // Append the converted IDs to the selfIDs array
+        selfIDs.splice(converted, hexIDs.length, ...hexIDs);
+        converted += hexIDs.length;
+
+        console.log("Inserting to blockchain");
+        // Now, all IDs are converted to hexadecimal, so we can send the transaction
+        contract.methods.insertToBlockchain(selfIDs).send({from:account})
+        .then(() => {
+            console.log("Successfully inserted to blockchain");
+            $("#auth").html("Authenticate")
+            $("#auth").css({"background-color":"blue"});
+            button.disabled = true;
+        })
+        .catch(error => {
+            console.error("Error inserting to blockchain:", error);
+        });
+    })
+    .catch(error => {
+        console.error("Error converting IDs to hex:", error);
+    });
+}
+*/
 
 // Function that keeps querying the server for the infection status. 
 // This is to check if this person has been CONFIRMED diagnosed positive. 
@@ -153,9 +241,12 @@ setInterval(checkIfPositive, checkIfPositiveInterval * 1000);
 // It queries the blockchain continuously and checks if this person has come in contact with
 // anyone who has been infected(aka a case). 
 function safetyChecker(){
+    console.log("Inside safety checker.......");
     if (found === false){
         contract.methods.checkIDs(exchangedIDs, index).call().then((f) => {
+            console.log("yes");
             found = f[0];
+            console.log(found);
             index = f[1];
         });
     }

@@ -6,11 +6,14 @@ window.ethereum.enable().catch(error => {
 })
 var account;
 web3.eth.getAccounts((err, res) => {                   
-  account = res[0];
+    console.log("result is:")
+    console.log(res);
+    account = res[1];
+    console.log(".....")
 });
 
 // Contract address and ABI
-var address = '0xb7eeEDe8968646A791198fb7169Ef9a9964721B3';
+var address = '0x7c6f179657236b33e272c0524a8b5625b2171083';
 var abi = [{"constant":true,"inputs":[{"internalType":"bytes32[]","name":"exchangedIDs","type":"bytes32[]"},{"internalType":"uint256","name":"index","type":"uint256"}],"name":"checkIDs","outputs":[{"internalType":"bool","name":"","type":"bool"},{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"bytes32[]","name":"infectedID","type":"bytes32[]"}],"name":"insertToBlockchain","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"listofIDs","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"readFromBlockchain","outputs":[{"internalType":"bytes32[]","name":"","type":"bytes32[]"}],"payable":false,"stateMutability":"view","type":"function"}];
 
 // contract object 

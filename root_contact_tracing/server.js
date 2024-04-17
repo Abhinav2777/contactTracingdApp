@@ -3,7 +3,11 @@ import express from 'express';
 const app = express();
 //const got = require('fix-esm').require('got');
 import cheerio from 'cheerio';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 app.listen(8080);
 app.use("/root_contact_tracing", express)

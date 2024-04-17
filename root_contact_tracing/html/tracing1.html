@@ -14,15 +14,23 @@
         height:5%;
         text-align: center;
       }
+        /* CSS to make the image fill the entire horizontal screen */
+        .blocktrace {
+            top: 0;
+            left: 0;
+            width: 100vw; /* Set image width to 100% of viewport width */
+            height: 30vh;
+            z-index: -1; /* Place image behind other content */
+        }
     </style>
 </head>
 
 <body style='background-color: black;'>
-  <img src="../pictures/MicrosoftTeams-image(1).png" class="img-fluid">
+  <img src="../pictures/blocktrace.png" class="blocktrace">
    <div class = "card">
     <div class="card-body" style =  "background-color: black;color: white;text-align: center;font-size: 180%;padding: 2%;">
         <div>
-          Welcome, John Doe
+          Welcome, Abhinav
         </div>
         <div><br>
           ADMIN
